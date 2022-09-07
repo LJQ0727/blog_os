@@ -10,7 +10,6 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-static HELLO: &[u8] = b"Hello world";
 
 // Entry point
 #[no_mangle]
