@@ -36,12 +36,6 @@ pub extern "C" fn _start() -> ! {
     hlt_loop();
 }
 
-#[allow(unconditional_recursion)]
-fn stack_overflow() {
-    stack_overflow(); // for each recursion, the return address is pushed
-    volatile::Volatile::new(0).read(); // prevent tail recursion optimizations
-}
-
 pub fn hlt_loop() -> ! {
     // replacement for the loop {}
     loop {
