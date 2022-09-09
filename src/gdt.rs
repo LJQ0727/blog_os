@@ -22,6 +22,10 @@ struct Selectors {
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static! {
+    // The x86_64 architecture is able to switch to a predefined, 
+    // known-good stack when an exception occurs. This switch happens at hardware level, so it can be performed before the CPU pushes the exception stack frame.
+
+    // So that the interrupt stack frame is pushed to a safe, reserved memory address
     static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
         tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
