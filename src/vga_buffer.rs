@@ -85,6 +85,18 @@ impl Writer {
             self.buffer.chars[row][col].write(blank);
         }
     }
+    pub fn backspace_char(&mut self) {
+        let mut row = BUFFER_HEIGHT - 1;
+        let mut col = self.column_position;
+        // if col == 0 { col = BUFFER_WIDTH - 1; row -= 1; }
+        if col == 0 {}  // do nothing for now
+        else {col -= 1;}
+        self.buffer.chars[row][col].write(ScreenChar {
+            ascii_character: ' ' as u8,
+            color_code: self.color_code,
+        });
+        self.column_position = col;
+    }
     pub fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
@@ -145,4 +157,9 @@ pub fn _print(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
     });
+}
+
+pub fn backspace() {
+    // revert last typed character
+    WRITER.lock().backspace_char();
 }

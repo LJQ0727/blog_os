@@ -1,10 +1,11 @@
-use pc_keyboard::{Keyboard, layouts, ScancodeSet1, DecodedKey};
+use pc_keyboard::{Keyboard, layouts, ScancodeSet1, DecodedKey, KeyCode, ScancodeSet};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use crate::gdt;
 use crate::print;
 use crate::println;
+use crate::vga_buffer::backspace;
 use pic8259::ChainedPics;
 
 use lazy_static::lazy_static;
@@ -59,17 +60,30 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(stack_frame: InterruptStack
     // the keyboard controller won’t send another interrupt 
     // until we have read the so-called scancode of the pressed key.
     let scancode: u8 = unsafe {port.read()};
-    // Decode key
+    // Decode input key
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => print!("{:?}", key), // not typical characters
-                // _ => {}
+            // Match backspace event
+            match ScancodeSet1::map_scancode(scancode).unwrap() {
+                KeyCode::Backspace => {
+                    // print!("backspace ");
+                    backspace();
+                }
+                KeyCode::Escape => {
+                }
+                _ => {
+                    match key {
+                        DecodedKey::Unicode(character) => {
+                            print!("{}", character)
+                        }
+                        // DecodedKey::RawKey(key) => print!("raw"),
+                        DecodedKey::RawKey(key) => print!("{:?}", key), // not typical characters
+                        // _ => {}
+                    }
+                }
             }
         }
     }
-    
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());     // must notify EOI
     }
