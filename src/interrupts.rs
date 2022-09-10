@@ -1,8 +1,8 @@
 use pc_keyboard::{Keyboard, layouts, ScancodeSet1, DecodedKey, KeyCode, ScancodeSet};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use crate::gdt;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use crate::{gdt, hlt_loop};
 use crate::print;
 use crate::println;
 use crate::vga_buffer::backspace;
@@ -14,6 +14,7 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
+        idt.page_fault.set_handler_fn(page_fault_handler);
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler)
             .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);      // Switch to this stack, rather than continuing stackoverflow
@@ -39,6 +40,16 @@ extern "x86-interrupt" fn double_fault_handler(
     println!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
     loop {}
 }
+extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
+    use x86_64::registers::control::Cr2;
+    println!("EXCEPTION: PAGE FAULT");
+    // he CR2 register is automatically set by the CPU on a page fault and contains the accessed virtual address that caused the page fault.
+    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Error Code: {:?}", error_code);
+    println!("{:#?}", stack_frame);
+    hlt_loop();
+}
+
 // ----- Hardware interrupts
 // all should notify EOI
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
